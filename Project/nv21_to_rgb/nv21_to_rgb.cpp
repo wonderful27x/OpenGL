@@ -23,8 +23,7 @@ const unsigned int SCR_HEIGHT = 600;
 int win_w = SCR_WIDTH;
 int win_h = SCR_HEIGHT;
 
-const char *input_file = "awesomeface.nv21.yuv";
-const char *output_file = "awesomeface.rgb";
+const char *input_file = "../../images/awesomeface.nv21.yuv";
 int w = 512;
 int h = 512;
 long long  len = w*h*3/2;
@@ -113,7 +112,6 @@ void nv21_to_rgb(unsigned char *nv21,int width,int height, unsigned char **data)
 void init_file() {
 	cout << "input_file: " << input_file << endl;
 	cout << "w: " << w << " h: " << h << endl;
-	cout << "output_file: " << output_file << endl;
 	
 	in.open(input_file, ios::binary);
 	if(!in) {
@@ -129,6 +127,7 @@ void init_file() {
 }
 
 void write_rgb() {
+	const char *output_file = "../../images/awesomeface_cpu.rgb";
 	out.open(output_file, ios::binary);
 	if(!out) {
 		cout << "failed to open output file: " << output_file << endl;
@@ -182,7 +181,7 @@ int main()
     }
 
     init_file(); //从文件中读取nv21数据
-    //write_rgb(); //将nv21转成rgb并写入文件，cpu直接转，主要用于测试
+    write_rgb(); //将nv21转成rgb并写入文件，cpu直接转，主要用于测试
 
     // build and compile our shader zprogram
     // ------------------------------------
@@ -260,7 +259,7 @@ int main()
     //    glGenerateMipmap(GL_TEXTURE_2D);
     //    //test
     //    cout << "w:h:c = " << width << ":" << height << ":" << nrChannels << endl;
-    //    ofstream rgb("woodtexture2.rgb", ios::binary);
+    //    ofstream rgb("../../images/woodtexture2_cpu.rgb", ios::binary);
     //    rgb.write(reinterpret_cast<char *>(data), width * height * 3);
     //    rgb.close();
     //}
@@ -373,7 +372,7 @@ int main()
 		count = 1;
 		data_out = new unsigned char[w*h*3];
 		glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, data_out);
-		ofstream out_file("awesomeface_gpu.rgb", ios::binary);
+		ofstream out_file("../../images/awesomeface_gpu.rgb", ios::binary);
 		if(out_file) {
 			cout << "write gpu_rgb..." << endl;
 			out_file.write(reinterpret_cast<char *>(data_out), w*h*3);
