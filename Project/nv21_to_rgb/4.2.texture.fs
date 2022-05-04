@@ -10,6 +10,13 @@ in vec2 TexCoord;
 uniform sampler2D texture1;
 uniform sampler2D texture2;
 
+//公式
+//R = Y + 1.4075 * (V-128);  
+//G = Y - 0.3455 * (U-128) - 0.7169*(V-128);  
+//B = Y + 1.779 * (U-128); 
+//注意uv分量需要减去128，即0.5*255,所以下面纹理采样时减去0.5就是这个原因，
+//因为纹理采样范围是0-1.0, 即0.5*1.0 = 0.5
+
 void main()
 {
 	vec3 yuv;
