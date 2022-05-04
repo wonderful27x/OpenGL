@@ -266,7 +266,17 @@ int main()
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
             ourShader.setMat4("model", model);
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+	    if(i==6) {
+		    //将立方体的右侧面绘制为move方式
+		    ourShader.setInt("movie", 1);
+		    glDrawArrays(GL_TRIANGLES, 18, 6);
+		    //其他面正常绘制
+		    ourShader.setInt("movie", 0);
+		    glDrawArrays(GL_TRIANGLES, 0, 18);
+		    glDrawArrays(GL_TRIANGLES, 24, 12);
+	    }else {
+		    glDrawArrays(GL_TRIANGLES, 0, 36);
+	    }
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
