@@ -267,7 +267,7 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth, videoHeight, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth, videoHeight, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth, videoHeight, 0, GL_RED, GL_UNSIGNED_BYTE, Y);
     //u 
     glBindTexture(GL_TEXTURE_2D, yuv[1]);
@@ -275,7 +275,7 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth / 2, videoHeight / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth / 2, videoHeight / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth / 2, videoHeight / 2, 0, GL_RED, GL_UNSIGNED_BYTE, U);
     //v
     glBindTexture(GL_TEXTURE_2D, yuv[2]);
@@ -283,7 +283,7 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth / 2, videoHeight / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth / 2, videoHeight / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, videoWidth / 2, videoHeight / 2, 0, GL_RED, GL_UNSIGNED_BYTE, V);
     //bind to default
     //glBindTexture(GL_TEXTURE_2D, 0);
@@ -324,13 +324,6 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 	
-	//glActiveTexture(GL_TEXTURE2);
-	//glBindTexture(GL_TEXTURE_2D, yuv[0]);
-	//glActiveTexture(GL_TEXTURE3);
-	//glBindTexture(GL_TEXTURE_2D, yuv[1]);
-	//glActiveTexture(GL_TEXTURE4);
-	//glBindTexture(GL_TEXTURE_2D, yuv[2]);
-
         // activate shader
         ourShader.use();
 
@@ -360,27 +353,50 @@ int main()
 		    AVFrame *frame = decode.getFrame();
 		    //AVFrame *frame = nullptr;
 		    if(frame) {
-			    //std::cout << "decode a frame ok" << std::endl;
+			    //opengl硬件也有字节对齐，去掉ffmpeg解码对齐的无效数据会使得有些分辨率无法播放!!!
+			    ////std::cout << "decode a frame ok" << std::endl;
+			    //fillYUV(Y, U, V, frame);
+			    ////y
+			    //glActiveTexture(GL_TEXTURE2);
+			    //glBindTexture(GL_TEXTURE_2D, yuv[0]);
+			    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width, frame->height, GL_RED, GL_UNSIGNED_BYTE, Y);
+			    ////u
+			    //glActiveTexture(GL_TEXTURE3);
+			    //glBindTexture(GL_TEXTURE_2D, yuv[1]);
+			    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width / 2, frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, U);
+			    ////v
+			    //glActiveTexture(GL_TEXTURE4);
+			    //glBindTexture(GL_TEXTURE_2D, yuv[2]);
+			    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width / 2, frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, V);
+
+			    //opengl硬件也有字节对齐，所以直接使用ffmpeg解码后对齐的数据，不做处理，
+			    //todo 但是这样会造成显示多出一块区域!!!
+			    static int first = true;
+			    if(first) {
+				    first = false;
+			    	    glBindTexture(GL_TEXTURE_2D, yuv[0]);
+    			            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[0], frame->height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+			    	    glBindTexture(GL_TEXTURE_2D, yuv[1]);
+    			            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[1], frame->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+			    	    glBindTexture(GL_TEXTURE_2D, yuv[2]);
+    			            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[2], frame->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+			    }
+
+			    //去掉字节对齐，并保存文件，但是下面不使用
 			    fillYUV(Y, U, V, frame);
+
 			    //y
 			    glActiveTexture(GL_TEXTURE2);
 			    glBindTexture(GL_TEXTURE_2D, yuv[0]);
-			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width, frame->height, GL_RED, GL_UNSIGNED_BYTE, Y);
+			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[0], frame->height, GL_RED, GL_UNSIGNED_BYTE, frame->data[0]);
 			    //u
 			    glActiveTexture(GL_TEXTURE3);
 			    glBindTexture(GL_TEXTURE_2D, yuv[1]);
-			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width / 2, frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, U);
+			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[1], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, frame->data[1]);
 			    //v
 			    glActiveTexture(GL_TEXTURE4);
 			    glBindTexture(GL_TEXTURE_2D, yuv[2]);
-			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width / 2, frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, V);
-
-			    //glActiveTexture(GL_TEXTURE2);
-			    //glBindTexture(GL_TEXTURE_2D, yuv[0]);
-			    //glActiveTexture(GL_TEXTURE3);
-			    //glBindTexture(GL_TEXTURE_2D, yuv[1]);
-			    //glActiveTexture(GL_TEXTURE4);
-			    //glBindTexture(GL_TEXTURE_2D, yuv[2]);
+			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[2], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, frame->data[2]);
 
 			    //将立方体的右侧面绘制为move方式
 			    ourShader.setInt("movie", 1);
@@ -432,12 +448,24 @@ void fillYUV(unsigned char *y, unsigned char *u, unsigned char *v, AVFrame *fram
 
 	static int count = 0;
 	if(count++ == 100) {
+		//转换后的，去掉字节对齐数据
 		std::string name = std::string("/home/wonderful/wonderful/FILE/video-audio/movie_") + std::to_string(frame->width) + "_" + std::to_string(frame->height) + "_yu12.yuv";
 		std::ofstream out(name, std::ios::binary);
 		if(out) {
 			out.write(reinterpret_cast<char *>(y), frame->width*frame->height);
 			out.write(reinterpret_cast<char *>(u), frame->width*frame->height / 4);
 			out.write(reinterpret_cast<char *>(v), frame->width*frame->height / 4);
+			out.close();
+		}
+
+		//原始数据
+		name = std::string("/home/wonderful/wonderful/FILE/video-audio/movie_") + std::to_string(frame->linesize[0]) + "_" + std::to_string(frame->height) + "_yu12o.yuv";
+		out.open(name, std::ios::binary);
+		if(out) {
+			std::cout << "linesize[0] = " << frame->linesize[0] << " linesize[1] = " << frame->linesize[1] << " linesize[2] = " << frame->linesize[2] << std::endl;
+			out.write(reinterpret_cast<char *>(frame->data[0]), frame->linesize[0]*frame->height);
+			out.write(reinterpret_cast<char *>(frame->data[1]), frame->linesize[1]*frame->height / 2);
+			out.write(reinterpret_cast<char *>(frame->data[2]), frame->linesize[2]*frame->height / 2);
 			out.close();
 		}
 	}
