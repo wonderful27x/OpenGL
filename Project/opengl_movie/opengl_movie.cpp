@@ -15,7 +15,8 @@
 #include <string>
 #include <cstdio>
 
-//todo 有些分辨率的文件播放不了，比如426x240
+//todo 当有字节对齐时，纹理的居中问题
+//todo 纹理图像颠倒180度
 //todo 播放速度控制
 //todo 音频播放
 
@@ -29,8 +30,8 @@ void fillYUV(unsigned char *y, unsigned char *u, unsigned char *v, AVFrame *fram
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-//const unsigned int SCR_WIDTH = 400;
-//const unsigned int SCR_HEIGHT = 400;
+int win_w = SCR_WIDTH;
+int win_h = SCR_HEIGHT;
 
 // camera
 glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -92,7 +93,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     //初始化解码器
-    Decode decode("/home/wonderful/wonderful/FILE/video-audio/love.mp4");
+    Decode decode("/home/wonderful/wonderful/FILE/video-audio/LOL.mp4");
     int videoWidth = decode.getWidth();
     int videoHeight = decode.getHeight();
     unsigned char Y[videoWidth * videoHeight];
@@ -372,6 +373,7 @@ int main()
 			    //opengl硬件也有字节对齐，所以直接使用ffmpeg解码后对齐的数据，不做处理，
 			    //todo 但是这样会造成显示多出一块区域!!!
 			    static int first = true;
+			    double scale = -1.0;
 			    if(first) {
 				    first = false;
 			    	    glBindTexture(GL_TEXTURE_2D, yuv[0]);
@@ -380,6 +382,10 @@ int main()
     			            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[1], frame->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
 			    	    glBindTexture(GL_TEXTURE_2D, yuv[2]);
     			            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[2], frame->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+
+				    //计算实际宽度占总宽度的比例
+				    scale = frame->width * 1.0 / frame->linesize[0];
+			            ourShader.setFloat("scale", scale);
 			    }
 
 			    //去掉字节对齐，并保存文件，但是下面不使用
@@ -398,10 +404,20 @@ int main()
 			    glBindTexture(GL_TEXTURE_2D, yuv[2]);
 			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[2], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, frame->data[2]);
 
+			    //跳过字节对齐的宽度，让纹理剧中, 通过glViewport似乎无法做到, 因为纹理坐标和顶点坐标已经绑定了,
+			    //glViewport只能改变绘制的区域, 即顶点和纹理共同的位置，它们的相对位置并不会改变
+			    //if(scale > 0) {
+			    //        int x = (1.0 - scale) * win_w;
+			    //        glViewport(-x, 0, win_w + x, win_h);
+			    //        std::cout  << -x << " " << 0 << " " << win_w + x << " " << win_h << std::endl;
+			    //}
+
 			    //将立方体的右侧面绘制为move方式
 			    ourShader.setInt("movie", 1);
 			    glDrawArrays(GL_TRIANGLES, 18, 6);
 			    //glDrawArrays(GL_TRIANGLES, 6, 6);
+
+    		            //glViewport(0, 0, win_w, win_h);
 		    }
 		    //其他面正常绘制
 		    ourShader.setInt("movie", 0);
@@ -495,9 +511,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
-    //glViewport(0, 0, width, height);
-    std::cout << "glViewport(" << width << ", " << height << ")" << std::endl;
-    glViewport(100, 100, width/2, height/2);
+    win_w = width;
+    win_h = height;
+    glViewport(0, 0, win_w, win_h);
+    //std::cout << "glViewport(" << width << ", " << height << ")" << std::endl;
+    //glViewport(100, 100, width/2, height/2);
 }
 
 // glfw: whenever the mouse moves, this callback is called

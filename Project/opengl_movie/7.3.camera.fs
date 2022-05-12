@@ -12,6 +12,7 @@ uniform sampler2D textureU;
 uniform sampler2D textureV;
 
 uniform int movie;
+uniform float scale;
 
 void main()
 {
@@ -23,6 +24,8 @@ void main()
 	//}
 
 	if(movie == 1) {
+		//跳过字节对齐的无效数据
+		//if(TexCoord.x > scale) return;
 		vec3 yuv;
 		vec2 coordinate = vec2(TexCoord.x, 1.0 - TexCoord.y);
 		yuv.x = texture(textureY, coordinate).r;
