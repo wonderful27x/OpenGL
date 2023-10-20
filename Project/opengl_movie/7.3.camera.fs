@@ -28,6 +28,7 @@ void main()
 		//if(TexCoord.x > scale) return;
 		vec3 yuv;
 		vec2 coordinate = vec2(TexCoord.x, 1.0 - TexCoord.y);
+		//vec2 coordinate = vec2(1.0 - TexCoord.x, TexCoord.y);
 		yuv.x = texture(textureY, coordinate).r;
 		yuv.y = texture(textureU, coordinate).r-0.5;
 		yuv.z = texture(textureV, coordinate).r-0.5;

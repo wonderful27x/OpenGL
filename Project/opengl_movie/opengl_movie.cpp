@@ -15,10 +15,10 @@
 #include <string>
 #include <cstdio>
 
-//todo 当有字节对齐时，纹理的居中问题
-//todo 纹理图像颠倒180度
-//todo 播放速度控制
-//todo 音频播放
+/* TODO 当有字节对齐时，纹理的居中问题 */
+/* TODO 纹理图像颠倒180度 */
+/* TODO 播放速度控制 */
+/* TODO 音频播放 */
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -92,14 +92,23 @@ int main()
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    //初始化解码器
-    Decode decode("/home/wonderful/wonderful/FILE/video-audio/LOL.mp4");
+    /* 初始化解码器 */
+    /* Decode decode("/home/wonderful/wonderful/FILE/video-audio/LOL.mp4"); */
+    FILE *t = fopen("../../tmp/LOL_std.mp4", "rb");
+    if(t) {
+        std::cout << "Success to open ../../tmp/LOL_std.mp4" << std::endl;
+    }else{
+        std::cout << "Failed to open ../../tmp/LOL_std.mp4" << std::endl;
+    }
+    fclose(t);
+
+    Decode decode("../../tmp/LOL_std.mp4");
     int videoWidth = decode.getWidth();
     int videoHeight = decode.getHeight();
-    unsigned char Y[videoWidth * videoHeight];
-    unsigned char U[videoWidth * videoHeight / 4];
-    unsigned char V[videoWidth * videoHeight / 4];
-    //测试加载静态yuv数据
+    unsigned char *Y = new unsigned char[videoWidth * videoHeight];
+    unsigned char *U = new unsigned char[videoWidth * videoHeight / 4];
+    unsigned char *V = new unsigned char[videoWidth * videoHeight / 4];
+    /* 测试加载静态yuv数据 */
     //std::ifstream in("/home/wonderful/wonderful/FILE/video-audio/movie_426_240_yu12.yuv", std::ios::binary);
     //if(in) {
     //        long long len = videoWidth*videoHeight*3/2;
@@ -114,18 +123,20 @@ int main()
     //        memcpy(V, yu12 + len + len/4, len/4);
     //}
 
-    //测试用，发现426x240这个分辨率无法播放
-    FILE *in = fopen("/home/wonderful/wonderful/FILE/video-audio/movie_426_240_yu12.yuv", "rb");
+    /* 测试用，发现426x240这个分辨率无法播放 */
+    /* FILE *in = fopen("/home/wonderful/wonderful/FILE/video-audio/movie_426_240_yu12.yuv", "rb"); */
+    FILE *in = fopen("../../tmp/movie_426_240_yu12.yuv", "rb");
     if(in) {
-            long long len = videoWidth*videoHeight*3/2;
-            unsigned char yu12[len];
-            long long rds = fread(yu12, len, 1, in);
+        long long len = videoWidth*videoHeight*3/2;
+        unsigned char *yu12 = new unsigned char[len];
+        long long rds = fread(yu12, len, 1, in);
 	    fclose(in);
-            std::cout << "read: " << rds << "/" << len << std::endl;
-            len = videoWidth * videoHeight;
-            memcpy(Y, yu12, len);
-            memcpy(U, yu12 + len, len/4);
-            memcpy(V, yu12 + len + len/4, len/4);
+        std::cout << "read: " << rds << "/" << len << std::endl;
+        len = videoWidth * videoHeight;
+        memcpy(Y, yu12, len);
+        memcpy(U, yu12 + len, len/4);
+        memcpy(V, yu12 + len + len/4, len/4);
+        delete[] yu12;
     }
 
     // build and compile our shader zprogram
@@ -258,7 +269,7 @@ int main()
     }
     stbi_image_free(data);
 
-    //创建yuv纹理
+    /* 创建yuv纹理 */
     std::cout << "w: " << videoWidth << " h: " << videoHeight << std::endl;
     unsigned int yuv[3];
     glGenTextures(3, yuv);
@@ -348,95 +359,98 @@ int main()
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
             ourShader.setMat4("model", model);
 
-	    if(i==6) {
-    		    //glViewport(0, 0, videoWidth, videoHeight);
+            if(i==2) {
+                    //glViewport(0, 0, videoWidth, videoHeight);
 
-		    AVFrame *frame = decode.getFrame();
-		    //AVFrame *frame = nullptr;
-		    if(frame) {
-			    //opengl硬件也有字节对齐，去掉ffmpeg解码对齐的无效数据会使得有些分辨率无法播放!!!
-			    ////std::cout << "decode a frame ok" << std::endl;
-			    //fillYUV(Y, U, V, frame);
-			    ////y
-			    //glActiveTexture(GL_TEXTURE2);
-			    //glBindTexture(GL_TEXTURE_2D, yuv[0]);
-			    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width, frame->height, GL_RED, GL_UNSIGNED_BYTE, Y);
-			    ////u
-			    //glActiveTexture(GL_TEXTURE3);
-			    //glBindTexture(GL_TEXTURE_2D, yuv[1]);
-			    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width / 2, frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, U);
-			    ////v
-			    //glActiveTexture(GL_TEXTURE4);
-			    //glBindTexture(GL_TEXTURE_2D, yuv[2]);
-			    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width / 2, frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, V);
+                AVFrame *frame = decode.getFrame();
+                //AVFrame *frame = nullptr;
+                if(frame) {
+                    /* opengl硬件也有字节对齐，去掉ffmpeg解码对齐的无效数据会使得有些分辨率无法播放!!! */
+                    ////std::cout << "decode a frame ok" << std::endl;
+                    //fillYUV(Y, U, V, frame);
+                    ////y
+                    //glActiveTexture(GL_TEXTURE2);
+                    //glBindTexture(GL_TEXTURE_2D, yuv[0]);
+                    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width, frame->height, GL_RED, GL_UNSIGNED_BYTE, Y);
+                    ////u
+                    //glActiveTexture(GL_TEXTURE3);
+                    //glBindTexture(GL_TEXTURE_2D, yuv[1]);
+                    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width / 2, frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, U);
+                    ////v
+                    //glActiveTexture(GL_TEXTURE4);
+                    //glBindTexture(GL_TEXTURE_2D, yuv[2]);
+                    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->width / 2, frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, V);
 
-			    //opengl硬件也有字节对齐，所以直接使用ffmpeg解码后对齐的数据，不做处理，
-			    //todo 但是这样会造成显示多出一块区域!!!
-			    static int first = true;
-			    double scale = -1.0;
-			    if(first) {
-				    first = false;
-			    	    glBindTexture(GL_TEXTURE_2D, yuv[0]);
-    			            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[0], frame->height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
-			    	    glBindTexture(GL_TEXTURE_2D, yuv[1]);
-    			            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[1], frame->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
-			    	    glBindTexture(GL_TEXTURE_2D, yuv[2]);
-    			            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[2], frame->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+                    /* opengl硬件也有字节对齐，所以直接使用ffmpeg解码后对齐的数据，不做处理， */
+                    /* TODO 但是这样会造成显示多出一块区域!!! */
+                    static int first = true;
+                    double scale = -1.0;
+                    if(first) {
+                        first = false;
+                        glBindTexture(GL_TEXTURE_2D, yuv[0]);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[0], frame->height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+                        glBindTexture(GL_TEXTURE_2D, yuv[1]);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[1], frame->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+                        glBindTexture(GL_TEXTURE_2D, yuv[2]);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame->linesize[2], frame->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
 
-				    //计算实际宽度占总宽度的比例
-				    scale = frame->width * 1.0 / frame->linesize[0];
-			            ourShader.setFloat("scale", scale);
-			    }
+                        /* 计算实际宽度占总宽度的比例 */
+                        scale = frame->width * 1.0 / frame->linesize[0];
+                        ourShader.setFloat("scale", scale);
+                    }
 
-			    //去掉字节对齐，并保存文件，但是下面不使用
-			    fillYUV(Y, U, V, frame);
+                    /* 去掉字节对齐，并保存文件，但是下面不使用 */
+                    fillYUV(Y, U, V, frame);
 
-			    //y
-			    glActiveTexture(GL_TEXTURE2);
-			    glBindTexture(GL_TEXTURE_2D, yuv[0]);
-			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[0], frame->height, GL_RED, GL_UNSIGNED_BYTE, frame->data[0]);
-			    //u
-			    glActiveTexture(GL_TEXTURE3);
-			    glBindTexture(GL_TEXTURE_2D, yuv[1]);
-			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[1], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, frame->data[1]);
-			    //v
-			    glActiveTexture(GL_TEXTURE4);
-			    glBindTexture(GL_TEXTURE_2D, yuv[2]);
-			    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[2], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, frame->data[2]);
+                    //y
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindTexture(GL_TEXTURE_2D, yuv[0]);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[0], frame->height, GL_RED, GL_UNSIGNED_BYTE, frame->data[0]);
+                    //u
+                    glActiveTexture(GL_TEXTURE3);
+                    glBindTexture(GL_TEXTURE_2D, yuv[1]);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[1], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, frame->data[1]);
+                    //v
+                    glActiveTexture(GL_TEXTURE4);
+                    glBindTexture(GL_TEXTURE_2D, yuv[2]);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[2], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, frame->data[2]);
 
-			    //跳过字节对齐的宽度，让纹理剧中, 通过glViewport似乎无法做到, 因为纹理坐标和顶点坐标已经绑定了,
-			    //glViewport只能改变绘制的区域, 即顶点和纹理共同的位置，它们的相对位置并不会改变
-			    //if(scale > 0) {
-			    //        int x = (1.0 - scale) * win_w;
-			    //        glViewport(-x, 0, win_w + x, win_h);
-			    //        std::cout  << -x << " " << 0 << " " << win_w + x << " " << win_h << std::endl;
-			    //}
+                    /* 跳过字节对齐的宽度，让纹理剧中, 通过glViewport似乎无法做到, 因为纹理坐标和顶点坐标已经绑定了, */
+                    /* glViewport只能改变绘制的区域, 即顶点和纹理共同的位置，它们的相对位置并不会改变 */
+                    //if(scale > 0) {
+                    //        int x = (1.0 - scale) * win_w;
+                    //        glViewport(-x, 0, win_w + x, win_h);
+                    //        std::cout  << -x << " " << 0 << " " << win_w + x << " " << win_h << std::endl;
+                    //}
 
-			    //将立方体的右侧面绘制为move方式
-			    ourShader.setInt("movie", 1);
-			    glDrawArrays(GL_TRIANGLES, 18, 6);
-			    //glDrawArrays(GL_TRIANGLES, 6, 6);
+                    /* 将立方体的右侧面绘制为move方式 */
+                    ourShader.setInt("movie", 1);
+                    glDrawArrays(GL_TRIANGLES, 30, 6);
+                    /* glDrawArrays(GL_TRIANGLES, 18, 6); */
+                    /* glDrawArrays(GL_TRIANGLES, 6, 6); */
 
-    		            //glViewport(0, 0, win_w, win_h);
-		    }
-		    //其他面正常绘制
-		    ourShader.setInt("movie", 0);
-		    glDrawArrays(GL_TRIANGLES, 0, 18);
-		    glDrawArrays(GL_TRIANGLES, 24, 12);
-		    //glDrawArrays(GL_TRIANGLES, 0, 6);
-		    //glDrawArrays(GL_TRIANGLES, 12, 24);
-	    }else {
-    		    //glViewport(0, 0, width, height);
-		    glDrawArrays(GL_TRIANGLES, 0, 36);
-	    }
+                    //glViewport(0, 0, win_w, win_h);
+                }
+                /* 其他面正常绘制 */
+                ourShader.setInt("movie", 0);
+                glDrawArrays(GL_TRIANGLES, 0, 30);
+                /* glDrawArrays(GL_TRIANGLES, 0, 18); */
+                /* glDrawArrays(GL_TRIANGLES, 24, 12); */
+                //glDrawArrays(GL_TRIANGLES, 0, 6);
+                //glDrawArrays(GL_TRIANGLES, 12, 24);
+            }else {
+                //glViewport(0, 0, width, height);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            }
 
-	    //std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+	    std::this_thread::sleep_for(std::chrono::milliseconds(35));
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
@@ -444,6 +458,10 @@ int main()
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     decode.stop();
+
+    delete[] Y;
+    delete[] U;
+    delete[] V;
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
@@ -463,10 +481,16 @@ void fillYUV(unsigned char *y, unsigned char *u, unsigned char *v, AVFrame *fram
         }
 
 	static int count = 0;
-	if(count++ == 100) {
-		//转换后的，去掉字节对齐数据
-		std::string name = std::string("/home/wonderful/wonderful/FILE/video-audio/movie_") + std::to_string(frame->width) + "_" + std::to_string(frame->height) + "_yu12.yuv";
-		std::ofstream out(name, std::ios::binary);
+	if(count++ < 300) {
+		/* 转换后的，去掉字节对齐数据 */
+		/* std::string name = std::string("/home/wonderful/wonderful/FILE/video-audio/movie_") + std::to_string(frame->width) + "_" + std::to_string(frame->height) + "_yu12.yuv"; */
+		std::string name = std::string("../../tmp/movie_") + std::to_string(frame->width) + "_" + std::to_string(frame->height) + "_yu12.yuv";
+		std::ofstream out;
+        if(count == 1){
+            out.open(name, std::ios::binary | std::ios::trunc);
+        }else{
+            out.open(name, std::ios::binary | std::ios::app);
+        }
 		if(out) {
 			out.write(reinterpret_cast<char *>(y), frame->width*frame->height);
 			out.write(reinterpret_cast<char *>(u), frame->width*frame->height / 4);
@@ -474,9 +498,14 @@ void fillYUV(unsigned char *y, unsigned char *u, unsigned char *v, AVFrame *fram
 			out.close();
 		}
 
-		//原始数据
-		name = std::string("/home/wonderful/wonderful/FILE/video-audio/movie_") + std::to_string(frame->linesize[0]) + "_" + std::to_string(frame->height) + "_yu12o.yuv";
-		out.open(name, std::ios::binary);
+		/* 原始数据 */
+		/* name = std::string("/home/wonderful/wonderful/FILE/video-audio/movie_") + std::to_string(frame->linesize[0]) + "_" + std::to_string(frame->height) + "_yu12o.yuv"; */
+		name = std::string("../../tmp/movie_") + std::to_string(frame->linesize[0]) + "_" + std::to_string(frame->height) + "_yu12o.yuv";
+        if(count == 1){
+            out.open(name, std::ios::binary | std::ios::trunc);
+        }else{
+            out.open(name, std::ios::binary | std::ios::app);
+        }
 		if(out) {
 			std::cout << "linesize[0] = " << frame->linesize[0] << " linesize[1] = " << frame->linesize[1] << " linesize[2] = " << frame->linesize[2] << std::endl;
 			out.write(reinterpret_cast<char *>(frame->data[0]), frame->linesize[0]*frame->height);
