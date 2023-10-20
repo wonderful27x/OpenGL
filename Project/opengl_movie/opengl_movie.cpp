@@ -50,7 +50,7 @@ float fov   =  45.0f;
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
-int main()
+int main(int argc, char *argv[])
 {
     // glfw: initialize and configure
     // ------------------------------
@@ -94,17 +94,25 @@ int main()
 
     /* 初始化解码器 */
     /* Decode decode("/home/wonderful/wonderful/FILE/video-audio/LOL.mp4"); */
-    FILE *t = fopen("../../tmp/LOL_std.mp4", "rb");
-    if(t) {
-        std::cout << "Success to open ../../tmp/LOL_std.mp4" << std::endl;
-    }else{
-        std::cout << "Failed to open ../../tmp/LOL_std.mp4" << std::endl;
-    }
-    fclose(t);
+    /* FILE *t = fopen("../../tmp/LOL_std.mp4", "rb"); */
+    /* if(t) { */
+    /*     std::cout << "Success to open ../../tmp/LOL_std.mp4" << std::endl; */
+    /* }else{ */
+    /*     std::cout << "Failed to open ../../tmp/LOL_std.mp4" << std::endl; */
+    /* } */
+    /* fclose(t); */
 
-    Decode decode("../../tmp/LOL_std.mp4");
+    /* Decode decode("../../tmp/LOL_std.mp4"); */
+    std::string movie_path = "../../tmp/Smooth_criminal.mp4";
+    if(argc > 1)
+    {
+        movie_path = argv[1];
+    }
+    std::cout << "Movie path: " << movie_path << std::endl;
+    Decode decode(movie_path);
     int videoWidth = decode.getWidth();
     int videoHeight = decode.getHeight();
+    int frameDuration = 1000 / decode.getFrameRate();
     unsigned char *Y = new unsigned char[videoWidth * videoHeight];
     unsigned char *U = new unsigned char[videoWidth * videoHeight / 4];
     unsigned char *V = new unsigned char[videoWidth * videoHeight / 4];
@@ -125,7 +133,8 @@ int main()
 
     /* 测试用，发现426x240这个分辨率无法播放 */
     /* FILE *in = fopen("/home/wonderful/wonderful/FILE/video-audio/movie_426_240_yu12.yuv", "rb"); */
-    FILE *in = fopen("../../tmp/movie_426_240_yu12.yuv", "rb");
+    std::string name = std::string("../../tmp/movie_") + std::to_string(videoWidth) + "_" + std::to_string(videoHeight) + "_yu12.yuv";
+    FILE *in = fopen(name.c_str(), "rb");
     if(in) {
         long long len = videoWidth*videoHeight*3/2;
         unsigned char *yu12 = new unsigned char[len];
@@ -402,6 +411,20 @@ int main()
                     /* 去掉字节对齐，并保存文件，但是下面不使用 */
                     fillYUV(Y, U, V, frame);
 
+                    /* /1* 我们甚至可用直接加载yuv数据 *1/ */
+                    /* //y */
+                    /* glActiveTexture(GL_TEXTURE2); */
+                    /* glBindTexture(GL_TEXTURE_2D, yuv[0]); */
+                    /* glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[0], frame->height, GL_RED, GL_UNSIGNED_BYTE, Y); */
+                    /* //u */
+                    /* glActiveTexture(GL_TEXTURE3); */
+                    /* glBindTexture(GL_TEXTURE_2D, yuv[1]); */
+                    /* glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[1], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, U); */
+                    /* //v */
+                    /* glActiveTexture(GL_TEXTURE4); */
+                    /* glBindTexture(GL_TEXTURE_2D, yuv[2]); */
+                    /* glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->linesize[2], frame->height / 2, GL_RED, GL_UNSIGNED_BYTE, V); */
+
                     //y
                     glActiveTexture(GL_TEXTURE2);
                     glBindTexture(GL_TEXTURE_2D, yuv[0]);
@@ -430,6 +453,8 @@ int main()
                     /* glDrawArrays(GL_TRIANGLES, 6, 6); */
 
                     //glViewport(0, 0, win_w, win_h);
+                } else {
+                    std::cout << "No available frame to use, decode to slow!!!" << std::endl;
                 }
                 /* 其他面正常绘制 */
                 ourShader.setInt("movie", 0);
@@ -450,7 +475,7 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-	    std::this_thread::sleep_for(std::chrono::milliseconds(35));
+	    std::this_thread::sleep_for(std::chrono::milliseconds(frameDuration - 5));
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
@@ -470,6 +495,12 @@ int main()
 }
 
 void fillYUV(unsigned char *y, unsigned char *u, unsigned char *v, AVFrame *frame) {
+    int max_count = 300;
+	static int count = 0;
+    static std::ofstream out1;
+    static std::ofstream out2;
+	if(count++ < max_count) {
+        /* 将AVFrame的数据拷贝到Y U V */
         for (int i = 0; i < frame->height; ++i) {
             memcpy(y + i*frame->width, frame->data[0] + i*frame->linesize[0], frame->width);
         }
@@ -480,40 +511,40 @@ void fillYUV(unsigned char *y, unsigned char *u, unsigned char *v, AVFrame *fram
             memcpy(v + i*frame->width/2, frame->data[2] + i*frame->linesize[2], frame->width/2);
         }
 
-	static int count = 0;
-	if(count++ < 300) {
 		/* 转换后的，去掉字节对齐数据 */
 		/* std::string name = std::string("/home/wonderful/wonderful/FILE/video-audio/movie_") + std::to_string(frame->width) + "_" + std::to_string(frame->height) + "_yu12.yuv"; */
 		std::string name = std::string("../../tmp/movie_") + std::to_string(frame->width) + "_" + std::to_string(frame->height) + "_yu12.yuv";
-		std::ofstream out;
-        if(count == 1){
-            out.open(name, std::ios::binary | std::ios::trunc);
-        }else{
-            out.open(name, std::ios::binary | std::ios::app);
+        if(count == 1) {
+            out1.open(name, std::ios::binary | std::ios::trunc);
         }
-		if(out) {
-			out.write(reinterpret_cast<char *>(y), frame->width*frame->height);
-			out.write(reinterpret_cast<char *>(u), frame->width*frame->height / 4);
-			out.write(reinterpret_cast<char *>(v), frame->width*frame->height / 4);
-			out.close();
+		if(out1) {
+			out1.write(reinterpret_cast<char *>(y), frame->width*frame->height);
+			out1.write(reinterpret_cast<char *>(u), frame->width*frame->height / 4);
+			out1.write(reinterpret_cast<char *>(v), frame->width*frame->height / 4);
 		}
+        if(count >= max_count) {
+			out1.close();
+        }
 
 		/* 原始数据 */
 		/* name = std::string("/home/wonderful/wonderful/FILE/video-audio/movie_") + std::to_string(frame->linesize[0]) + "_" + std::to_string(frame->height) + "_yu12o.yuv"; */
 		name = std::string("../../tmp/movie_") + std::to_string(frame->linesize[0]) + "_" + std::to_string(frame->height) + "_yu12o.yuv";
-        if(count == 1){
-            out.open(name, std::ios::binary | std::ios::trunc);
-        }else{
-            out.open(name, std::ios::binary | std::ios::app);
+        if(count == 1) {
+            out2.open(name, std::ios::binary | std::ios::trunc);
         }
-		if(out) {
+		if(out2) {
 			std::cout << "linesize[0] = " << frame->linesize[0] << " linesize[1] = " << frame->linesize[1] << " linesize[2] = " << frame->linesize[2] << std::endl;
-			out.write(reinterpret_cast<char *>(frame->data[0]), frame->linesize[0]*frame->height);
-			out.write(reinterpret_cast<char *>(frame->data[1]), frame->linesize[1]*frame->height / 2);
-			out.write(reinterpret_cast<char *>(frame->data[2]), frame->linesize[2]*frame->height / 2);
-			out.close();
+			out2.write(reinterpret_cast<char *>(frame->data[0]), frame->linesize[0]*frame->height);
+			out2.write(reinterpret_cast<char *>(frame->data[1]), frame->linesize[1]*frame->height / 2);
+			out2.write(reinterpret_cast<char *>(frame->data[2]), frame->linesize[2]*frame->height / 2);
 		}
+        if(count >= max_count) {
+			out2.close();
+        }
 	}
+    if(count >= max_count * 2) {
+        count = max_count * 2;
+    }
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly

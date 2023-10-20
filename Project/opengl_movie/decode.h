@@ -87,6 +87,10 @@ class Decode {
 			return height;
 		}
 
+        double getFrameRate() {
+            return frame_rate;
+        }
+
 	private:
 		std::mutex lock_mutex;
 		std::condition_variable cv;
@@ -105,6 +109,7 @@ class Decode {
 
 		AVRational time_base;
 
+        double frame_rate = 30.0;
 		int width = -1;
 		int height = -1;
 
@@ -149,6 +154,7 @@ class Decode {
 				av_packet_unref(&packet);
 			}
 end:
+            av_packet_unref(&packet);
 			return ok;
 		}
 
@@ -170,8 +176,9 @@ end:
 
 				/* 到这里说明frames[0]帧是可写入的，解码一帧数据 */
 				if(decodeFrame(frame) && running) {
+                    /* 必须把之前的引用解除，否则会造成内存泄漏 */
+					av_frame_unref(frames[0].frame);
 					av_frame_move_ref(frames[0].frame, frame);
-					av_frame_unref(frame);
 
 					/* 状态变为已填充，并交换buffer，使得frames[1]变为可读 */
 					frames[0].fill = true;
@@ -238,6 +245,8 @@ end:
 			time_base = fmt_ctx->streams[video_index]->time_base;
 			width = dec_ctx->width;
 			height = dec_ctx->height;
+            frame_rate = fmt_ctx->streams[video_index]->avg_frame_rate.num/fmt_ctx->streams[video_index]->avg_frame_rate.den;
+			printf("Movie width: %d height: %d frame rate: %lf\n", width, height, frame_rate);
 
 			//Output Info-----------------------------
 			printf("--------------- File Information ----------------\n");
