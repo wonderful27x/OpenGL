@@ -92,27 +92,37 @@ int main(int argc, char *argv[])
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    /* 初始化解码器 */
-    /* Decode decode("/home/wonderful/wonderful/FILE/video-audio/LOL.mp4"); */
-    /* FILE *t = fopen("../../tmp/LOL_std.mp4", "rb"); */
-    /* if(t) { */
-    /*     std::cout << "Success to open ../../tmp/LOL_std.mp4" << std::endl; */
-    /* }else{ */
-    /*     std::cout << "Failed to open ../../tmp/LOL_std.mp4" << std::endl; */
-    /* } */
-    /* fclose(t); */
-
-    /* Decode decode("../../tmp/LOL_std.mp4"); */
-    std::string movie_path = "../../tmp/Smooth_criminal.mp4";
+    Decode *decode = nullptr;
+    DecodeYuv *decodeyuv = nullptr;
+    int videoWidth = 0;
+    int videoHeight = 0;
+    int frameDuration = 0;
+    std::string movie_path;
+    std::cout << std::endl;
+    std::cout << "==============================================================" << std::endl;
+    std::cout << "Example1: movie.exe video.mp4" << std::endl;
+    std::cout << "Example2 (only support yu12): movie.exe video.yuv 1920 1080 30" << std::endl;
+    std::cout << "==============================================================\n" << std::endl;
+    std::cout << "argc: " << argc << std::endl;
     if(argc > 1)
     {
         movie_path = argv[1];
+        if(argc == 2) {
+            decode = new Decode(movie_path);
+            videoWidth = decode->getWidth();
+            videoHeight = decode->getHeight();
+            frameDuration = 1000 / decode->getFrameRate();
+        }
+        if(argc == 5) {
+            decodeyuv = new DecodeYuv(movie_path, std::stoi(argv[2]), std::stoi(argv[3]), std::stod(argv[4]));
+            videoWidth = decodeyuv->getWidth();
+            videoHeight = decodeyuv->getHeight();
+            frameDuration = 1000 / decodeyuv->getFrameRate();
+        }
+    } else {
+        std::cout << "Please specific a video path!" << std::endl;
     }
     std::cout << "Movie path: " << movie_path << std::endl;
-    Decode decode(movie_path);
-    int videoWidth = decode.getWidth();
-    int videoHeight = decode.getHeight();
-    int frameDuration = 1000 / decode.getFrameRate();
     unsigned char *Y = new unsigned char[videoWidth * videoHeight];
     unsigned char *U = new unsigned char[videoWidth * videoHeight / 4];
     unsigned char *V = new unsigned char[videoWidth * videoHeight / 4];
@@ -371,7 +381,12 @@ int main(int argc, char *argv[])
             if(i==2) {
                     //glViewport(0, 0, videoWidth, videoHeight);
 
-                AVFrame *frame = decode.getFrame();
+                AVFrame *frame = nullptr;
+                if(decode != nullptr) {
+                    frame = decode->getFrame();
+                } else if (decodeyuv != nullptr) {
+                    frame = decodeyuv->getFrame();
+                }
                 //AVFrame *frame = nullptr;
                 if(frame) {
                     /* opengl硬件也有字节对齐，去掉ffmpeg解码对齐的无效数据会使得有些分辨率无法播放!!! */
@@ -482,7 +497,10 @@ int main(int argc, char *argv[])
     // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    decode.stop();
+    decode->stop();
+    decodeyuv->stop();
+    delete decode;
+    delete decodeyuv;
 
     delete[] Y;
     delete[] U;
@@ -533,7 +551,8 @@ void fillYUV(unsigned char *y, unsigned char *u, unsigned char *v, AVFrame *fram
             out2.open(name, std::ios::binary | std::ios::trunc);
         }
 		if(out2) {
-			std::cout << "linesize[0] = " << frame->linesize[0] << " linesize[1] = " << frame->linesize[1] << " linesize[2] = " << frame->linesize[2] << std::endl;
+			std::cout << "linesize[0] = " << frame->linesize[0] << " linesize[1] = " << frame->linesize[1] << " linesize[2] = " << frame->linesize[2]
+               << " data[0] = " << (int*)frame->data[0] << " data[1] = " << (int*)frame->data[1] << " data[2] = " << (int*)frame->data[2] << std::endl;
 			out2.write(reinterpret_cast<char *>(frame->data[0]), frame->linesize[0]*frame->height);
 			out2.write(reinterpret_cast<char *>(frame->data[1]), frame->linesize[1]*frame->height / 2);
 			out2.write(reinterpret_cast<char *>(frame->data[2]), frame->linesize[2]*frame->height / 2);

@@ -68,4 +68,4 @@ cmake --build cmake_ign_build --config $build_type \
 # cd cmake_ign_build
 # ctest -V -C $build_type
 
-./cmake_ign_build/$build_type/movie.exe
+./cmake_ign_build/$build_type/movie.exe ../../tmp/Smooth_criminal.mp4

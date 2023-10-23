@@ -6,6 +6,7 @@
 #include <thread>
 #include <condition_variable>
 #include <cstdio>
+#include <fstream>
 
 #ifdef __cplusplus
 extern "C" {
@@ -256,6 +257,95 @@ end:
 			/* 启动解码线程 */
 			std::thread t(&Decode::decodeTask, this);
 			t.detach();
+
+			return 0;
+		}
+};
+
+class DecodeYuv {
+	public:
+		DecodeYuv(const std::string &path, int w, int h, double rate) :
+            url(path),
+            width(w),
+            height(h),
+            frame_rate(rate)
+        {
+			std::cout << "DecodeYuv init ..." << std::endl;
+			if(init() == 0) {
+				std::cout << "DecodeYuv init ok" << std::endl;
+			}else {
+				std::cout << "DecodeYuv init error" << std::endl;
+			}
+		}
+
+		~DecodeYuv() {
+			stop();
+		}
+
+		DecodeYuv(const DecodeYuv &) = delete;
+		DecodeYuv &operator=(const DecodeYuv &) = delete;
+
+		void stop() {
+            vstream.close();
+            av_frame_unref(frame);
+            av_frame_free(&frame);
+		}
+
+		int getWidth() {
+			return width;
+		}
+
+		int getHeight() {
+			return height;
+		}
+
+        double getFrameRate() {
+            return frame_rate;
+        }
+
+		AVFrame *getFrame() {
+            if(!vstream) return nullptr;
+            vstream.read(reinterpret_cast<char *>(frame->data[0]), width*height);
+            vstream.read(reinterpret_cast<char *>(frame->data[1]), width*height/4);
+            vstream.read(reinterpret_cast<char *>(frame->data[2]), width*height/4);
+			return frame;
+		}
+
+	private:
+        std::ifstream vstream;
+		std::string url;
+        double frame_rate = 30.0;
+		int width = -1;
+		int height = -1;
+        AVFrame *frame;
+
+		int init() {
+            vstream.open(url, std::ios::binary);
+            if(!vstream) {
+                std::cout << "Failed to open: " << url << std::endl;
+                return -1;
+            }
+
+			printf("Movie width: %d height: %d frame rate: %lf\n", width, height, frame_rate);
+			frame = av_frame_alloc();
+			if(!frame) {
+				std::cout << "Error to alloc frame for decoding!" << std::endl;
+				return -1;
+			}
+
+            frame->width = width;
+            frame->height = height;
+            frame->format = AV_PIX_FMT_YUV420P;
+            if(av_frame_get_buffer(frame, 1) < 0) {
+				std::cout << "Error to alloc frame buffer for decoding!" << std::endl;
+				return -1;
+            }
+            std::cout << "Allock AVFrame success, linesize[0]: " << frame->linesize[0]
+                << " linesize[1]: " << frame->linesize[1]
+                << " linesize[2]: " << frame->linesize[2]
+                << " data[0]: " << (int*)frame->data[0]
+                << " data[1]: " << (int*)frame->data[1]
+                << " data[2]: " << (int*)frame->data[2] << std::endl;
 
 			return 0;
 		}
