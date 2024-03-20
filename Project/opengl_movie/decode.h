@@ -129,10 +129,20 @@ class Decode {
 			int ret;
 			bool ok = false;
 			while (true) {
+                if(avcodec_receive_frame(dec_ctx, frame) == 0)
+                {
+                    frame->pts = frame->best_effort_timestamp;
+                    ok = true;
+                    break;
+                }
+
 				if ((ret = av_read_frame(fmt_ctx, &packet)) < 0) break;
 				if (packet.stream_index == video_index) {
 					ret = avcodec_send_packet(dec_ctx, &packet);
-					if (ret < 0) {
+                    if(ret == AVERROR(EAGAIN))
+                    {
+                        continue;
+                    } else if (ret < 0) {
 						av_log(NULL, AV_LOG_ERROR, "Error while sending a packet to the decoder, error code: %d\n", ret);
 						break;
 					}
@@ -221,10 +231,16 @@ end:
 				av_log(NULL, AV_LOG_ERROR, "Cannot open input file, error code: %d\n", ret);
 				return ret;
 			}
+
 			if ((ret = avformat_find_stream_info(fmt_ctx, NULL)) < 0) {
 				av_log(NULL, AV_LOG_ERROR, "Cannot find stream information, error code: %d\n", ret);
 				return ret;
 			}
+
+			printf("--------------- File Information ----------------\n");
+			av_dump_format(fmt_ctx, 0, url.c_str(), 0);
+			printf("-------------------------------------------------\n");
+
 			/* select the video stream */
 			ret = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, &dec, 0);
 			if (ret < 0) {
@@ -249,10 +265,10 @@ end:
             frame_rate = fmt_ctx->streams[video_index]->avg_frame_rate.num/fmt_ctx->streams[video_index]->avg_frame_rate.den;
 			printf("Movie width: %d height: %d frame rate: %lf\n", width, height, frame_rate);
 
-			//Output Info-----------------------------
-			printf("--------------- File Information ----------------\n");
-			av_dump_format(fmt_ctx, 0, url.c_str(), 0);
-			printf("-------------------------------------------------\n");
+			/* //Output Info----------------------------- */
+			/* printf("--------------- File Information ----------------\n"); */
+			/* av_dump_format(fmt_ctx, 0, url.c_str(), 0); */
+			/* printf("-------------------------------------------------\n"); */
 
 			/* 启动解码线程 */
 			std::thread t(&Decode::decodeTask, this);

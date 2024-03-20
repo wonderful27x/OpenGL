@@ -8,12 +8,15 @@
 #include "shader_m.h"
 #include "stb_image.h"
 #include "decode.h"
+#include "mini_decoder.h"
 
 #include <iostream>
 #include <cstring>
 #include <fstream>
 #include <string>
 #include <cstdio>
+
+#define USE_MINI_DECODER
 
 /* TODO 当有字节对齐时，纹理的居中问题 */
 /* TODO 纹理图像颠倒180度 */
@@ -93,6 +96,7 @@ int main(int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
 
     Decode *decode = nullptr;
+    MiniDecoder *miniDecode = nullptr;
     DecodeYuv *decodeyuv = nullptr;
     int videoWidth = 0;
     int videoHeight = 0;
@@ -108,10 +112,18 @@ int main(int argc, char *argv[])
     {
         movie_path = argv[1];
         if(argc == 2) {
+#ifndef USE_MINI_DECODER
             decode = new Decode(movie_path);
             videoWidth = decode->getWidth();
             videoHeight = decode->getHeight();
             frameDuration = 1000 / decode->getFrameRate();
+#else
+
+            miniDecode = new MiniDecoder(movie_path);
+            videoWidth = miniDecode->Width();
+            videoHeight = miniDecode->Height();
+            frameDuration = 1000 / miniDecode->Framerate();
+#endif
         }
         if(argc == 5) {
             decodeyuv = new DecodeYuv(movie_path, std::stoi(argv[2]), std::stoi(argv[3]), std::stod(argv[4]));
@@ -382,13 +394,22 @@ int main(int argc, char *argv[])
                     //glViewport(0, 0, videoWidth, videoHeight);
 
                 AVFrame *frame = nullptr;
+#ifndef USE_MINI_DECODER
                 if(decode != nullptr) {
                     frame = decode->getFrame();
                 } else if (decodeyuv != nullptr) {
                     frame = decodeyuv->getFrame();
                 }
+#else
+                if(miniDecode != nullptr) {
+                    frame = miniDecode->DecodeFrame();
+                } else if (decodeyuv != nullptr) {
+                    frame = decodeyuv->getFrame();
+                }
+#endif
                 //AVFrame *frame = nullptr;
                 if(frame) {
+                    /* std::cout << "Frame pts: " << frame->pts << " pkt_dts: " << frame->pkt_dts << std::endl; */
                     /* opengl硬件也有字节对齐，去掉ffmpeg解码对齐的无效数据会使得有些分辨率无法播放!!! */
                     ////std::cout << "decode a frame ok" << std::endl;
                     //fillYUV(Y, U, V, frame);
@@ -501,6 +522,7 @@ int main(int argc, char *argv[])
     decodeyuv->stop();
     delete decode;
     delete decodeyuv;
+    delete miniDecode;
 
     delete[] Y;
     delete[] U;
@@ -551,8 +573,8 @@ void fillYUV(unsigned char *y, unsigned char *u, unsigned char *v, AVFrame *fram
             out2.open(name, std::ios::binary | std::ios::trunc);
         }
 		if(out2) {
-			std::cout << "linesize[0] = " << frame->linesize[0] << " linesize[1] = " << frame->linesize[1] << " linesize[2] = " << frame->linesize[2]
-               << " data[0] = " << (int*)frame->data[0] << " data[1] = " << (int*)frame->data[1] << " data[2] = " << (int*)frame->data[2] << std::endl;
+			/* std::cout << "linesize[0] = " << frame->linesize[0] << " linesize[1] = " << frame->linesize[1] << " linesize[2] = " << frame->linesize[2] */
+               /* << " data[0] = " << (int*)frame->data[0] << " data[1] = " << (int*)frame->data[1] << " data[2] = " << (int*)frame->data[2] << std::endl; */
 			out2.write(reinterpret_cast<char *>(frame->data[0]), frame->linesize[0]*frame->height);
 			out2.write(reinterpret_cast<char *>(frame->data[1]), frame->linesize[1]*frame->height / 2);
 			out2.write(reinterpret_cast<char *>(frame->data[2]), frame->linesize[2]*frame->height / 2);
