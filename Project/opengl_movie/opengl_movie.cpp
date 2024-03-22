@@ -96,7 +96,8 @@ int main(int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
 
     Decode *decode = nullptr;
-    MiniDecoder *miniDecode = nullptr;
+    VMiniDecoder *vminiDecode = nullptr;
+    AMiniDecoder *aminiDecode = nullptr;
     DecodeYuv *decodeyuv = nullptr;
     int videoWidth = 0;
     int videoHeight = 0;
@@ -119,10 +120,18 @@ int main(int argc, char *argv[])
             frameDuration = 1000 / decode->getFrameRate();
 #else
 
-            miniDecode = new MiniDecoder(movie_path);
-            videoWidth = miniDecode->Width();
-            videoHeight = miniDecode->Height();
-            frameDuration = 1000 / miniDecode->Framerate();
+            vminiDecode = new VMiniDecoder(movie_path);
+            vminiDecode->Init();
+            videoWidth = vminiDecode->Width();
+            videoHeight = vminiDecode->Height();
+            frameDuration = 1000 / vminiDecode->Framerate();
+            std::cout << "Video path: " << movie_path << std::endl;
+            std::cout << "width: " << videoWidth << " height: " << videoHeight << " framerate: " << vminiDecode->Framerate() << std::endl;
+            // audio
+            aminiDecode = new AMiniDecoder(movie_path);
+            aminiDecode->Init();
+            std::cout << "Aduio path: " << movie_path << std::endl;
+            std::cout << "samplerate: " << aminiDecode->Samplerate() << " channels: " << aminiDecode->Channels() << " bits-per-sample: " << aminiDecode->BitsPerSample() << std::endl;
 #endif
         }
         if(argc == 5) {
@@ -401,11 +410,13 @@ int main(int argc, char *argv[])
                     frame = decodeyuv->getFrame();
                 }
 #else
-                if(miniDecode != nullptr) {
-                    frame = miniDecode->DecodeFrame();
+                if(vminiDecode != nullptr) {
+                    frame = vminiDecode->DecodeFrame();
                 } else if (decodeyuv != nullptr) {
                     frame = decodeyuv->getFrame();
                 }
+                // audio
+                AVFrame *aframe = aminiDecode->DecodeFrame();
 #endif
                 //AVFrame *frame = nullptr;
                 if(frame) {
@@ -522,7 +533,8 @@ int main(int argc, char *argv[])
     decodeyuv->stop();
     delete decode;
     delete decodeyuv;
-    delete miniDecode;
+    delete vminiDecode;
+    delete aminiDecode;
 
     delete[] Y;
     delete[] U;

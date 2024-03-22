@@ -69,3 +69,6 @@ cmake --build cmake_ign_build --config $build_type \
 # ctest -V -C $build_type
 
 ./cmake_ign_build/$build_type/movie.exe ../../tmp/Smooth_criminal.mp4
+# ./cmake_ign_build/$build_type/movie.exe ../../tmp/Beat_it.mp4
+# ./cmake_ign_build/$build_type/movie.exe ../../tmp/Billie_Jean.mp4
+# ./cmake_ign_build/$build_type/movie.exe ../../tmp/LOL_std.mp4
